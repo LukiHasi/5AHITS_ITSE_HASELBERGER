@@ -213,3 +213,124 @@ echo
 ```
 
 
+
+## Entschlüsselungsprogramm erstellen und bei anderen ausprobieren (Blue Team)
+
+**Aufgabenstellung:**
+
+Lass einige deiner Files durch das Script eines anderen Mitschülers/Gruppe verschlüsseln. Versuche die Daten dann selbst wieder zu entschlüsseln – mit Hilfe des Master-Private-Keys (rsa_global_key_private) des anderen Schülers/der anderen Gruppe.
+Implementiere den vollständigen Entschlüsselungsablauf als shell-script mit openssl
+
+
+**Programm:**
+
+
+
+#!/bin/bash
+ 
+set -e
+ 
+GLOBAL_PRIVATE="keys/rsa_global_key_private.pem"
+VICTIM_PRIVATE_ENC="keys/victim_private.enc"
+ 
+if [ ! -f "$GLOBAL_PRIVATE" ]; then
+    echo "Fehler: Globaler Private Key fehlt."
+    exit 1
+fi
+ 
+if [ ! -f "$VICTIM_PRIVATE_ENC" ]; then
+    echo "Fehler: victim_private.enc fehlt."
+    exit 1
+fi
+ 
+if [ "$#" -eq 0 ]; then
+    echo "Verwendung:"
+    echo "  $0 datei.enc"
+    echo
+    echo "Beispiel:"
+    echo "  $0 test.txt.enc"
+    exit 1
+fi
+ 
+echo "[+] Entschlüssele aes_victim_key..."
+ 
+openssl pkeyutl \
+    -decrypt \
+    -inkey "$GLOBAL_PRIVATE" \
+    -in keys/victim_key.enc \
+    -out /tmp/aes_victim_key
+ 
+echo "[+] Entschlüssele Victim Private Key..."
+ 
+openssl enc -aes-256-cbc \
+    -d \
+    -in "$VICTIM_PRIVATE_ENC" \
+    -out /tmp/rsa_victim_key_private.pem \
+    -K "$(cat /tmp/aes_victim_key)" \
+    -iv 00000000000000000000000000000000
+ 
+for FILE in "$@"; do
+ 
+    if [ ! -f "$FILE" ]; then
+        echo "[!] Datei nicht gefunden: $FILE"
+        continue
+    fi
+ 
+    SIZE=$(stat -c%s "$FILE")
+ 
+    # RSA-2048 Ciphertext = 256 Bytes
+    AES_SIZE=$((SIZE - 256))
+ 
+    if [ "$AES_SIZE" -le 0 ]; then
+        echo "[!] Keine gültige verschlüsselte Datei: $FILE"
+        continue
+    fi
+ 
+    echo "[+] Entschlüssele: $FILE"
+ 
+    # Die letzten 256 Bytes enthalten den RSA-verschlüsselten AES-Key
+    dd if="$FILE" \
+       of="/tmp/file.rsa" \
+       bs=1 \
+       skip="$AES_SIZE" \
+       status=none
+ 
+    # Alles davor ist AES-Ciphertext
+    dd if="$FILE" \
+       of="/tmp/file.aes" \
+       bs=1 \
+       count="$AES_SIZE" \
+       status=none
+ 
+    # AES-Key mit Victim Private Key entschlüsseln
+    openssl pkeyutl \
+        -decrypt \
+        -inkey /tmp/rsa_victim_key_private.pem \
+        -in /tmp/file.rsa \
+        -out /tmp/file.key
+ 
+    AES_KEY=$(cat /tmp/file.key)
+ 
+    # Original wiederherstellen
+    OUT="${FILE%.enc}"
+ 
+    openssl enc -aes-256-cbc \
+        -d \
+        -in /tmp/file.aes \
+        -out "$OUT" \
+        -K "$AES_KEY" \
+        -iv 00000000000000000000000000000000
+ 
+    echo "    -> $OUT"
+done
+ 
+rm -f /tmp/aes_victim_key
+rm -f /tmp/rsa_victim_key_private.pem
+rm -f /tmp/file.rsa
+rm -f /tmp/file.aes
+rm -f /tmp/file.key
+ 
+echo
+echo "[+] Entschlüsselung abgeschlossen."
+
+
