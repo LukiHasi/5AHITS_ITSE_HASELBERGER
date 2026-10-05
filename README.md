@@ -1,7 +1,7 @@
 # Ryuk Red-Team
 
 ---
-**Name:** Lukas Haselberger <br> David Weinberger <br>
+**Name:** David Weinberger Lukas Haselberger <br>
 **Klasse:** 5AHITS <br>
 **Datum:** 05.10.2026 <br>
 **Fach:** ITSE - Labor <br>
