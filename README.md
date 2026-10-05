@@ -1,4 +1,4 @@
-# Ryuk Red-Team
+# Ryuk
 
 ---
 **Name:** David Weinberger, Lukas Haselberger <br>
@@ -7,6 +7,7 @@
 **Fach:** ITSE - Labor <br>
 
 
+## Red Team
 ## Erstellen eines Bash-Skripts, das auf dem Ablauf von Ryuk basiert
 
 **Aufgabenstellung:**
