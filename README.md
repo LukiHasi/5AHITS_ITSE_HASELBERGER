@@ -226,7 +226,7 @@ Implementiere den vollständigen Entschlüsselungsablauf als shell-script mit op
 **Programm:**
 
 
-
+```
 #!/bin/bash
  
 set -e
@@ -333,5 +333,5 @@ rm -f /tmp/file.key
  
 echo
 echo "[+] Entschlüsselung abgeschlossen."
-
+```
 
